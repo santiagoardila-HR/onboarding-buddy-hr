@@ -29,7 +29,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-2xl font-semibold text-foreground">Onboarding Calls</h2>
             <p className="text-muted-foreground mt-1">
-              Manage employee onboarding calls
+              Manage HappyRobot new-hire onboarding calls
             </p>
           </div>
           

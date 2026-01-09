@@ -16,6 +16,7 @@ interface OnboardingCall {
   id: string;
   employee_name: string;
   role: string;
+  team: string | null;
   location: string;
   start_date: string;
   status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
@@ -52,8 +53,9 @@ export function OnboardingCallsTable({ calls, isLoading }: OnboardingCallsTableP
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead>Employee Name</TableHead>
+            <TableHead>Employee</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Team</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Start Date</TableHead>
             <TableHead>Status</TableHead>
@@ -66,6 +68,7 @@ export function OnboardingCallsTable({ calls, isLoading }: OnboardingCallsTableP
             <TableRow key={call.id} className="animate-fade-in">
               <TableCell className="font-medium">{call.employee_name}</TableCell>
               <TableCell>{call.role}</TableCell>
+              <TableCell className="text-muted-foreground">{call.team || "—"}</TableCell>
               <TableCell>{call.location}</TableCell>
               <TableCell>{format(new Date(call.start_date), "MMM d, yyyy")}</TableCell>
               <TableCell>

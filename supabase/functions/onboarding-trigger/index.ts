@@ -9,8 +9,8 @@ const corsHeaders = {
 /**
  * POST /onboarding-trigger
  * 
- * This function triggers an external onboarding call system (e.g., HappyRobot).
- * Currently mocked - replace the mock section with actual API calls.
+ * This function triggers the HappyRobot AI onboarding call system.
+ * Currently mocked - replace the mock section with actual HappyRobot API calls.
  * 
  * Body: { id: string } - The onboarding_calls record ID
  * 
@@ -51,26 +51,32 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // MOCK EXTERNAL API CALL
+    // MOCK EXTERNAL API CALL - HappyRobot Integration
     // Replace this section with actual HappyRobot API integration
     // =========================================================================
     
-    // Build the payload to send to the external service
+    // Build the payload to send to HappyRobot
+    // TODO: Use APP_BASE_URL env var for the callback URL in production
     const externalPayload = {
       callback_url: `${supabaseUrl}/functions/v1/onboarding-webhook`,
       employee_name: call.employee_name,
       employee_phone: call.employee_phone,
       role: call.role,
+      team: call.team,
       location: call.location,
       start_date: call.start_date,
     };
 
-    console.log("External API payload:", JSON.stringify(externalPayload, null, 2));
+    console.log("HappyRobot API payload:", JSON.stringify(externalPayload, null, 2));
 
-    // TODO: Replace this mock with actual API call:
+    // TODO: Replace this mock with actual HappyRobot API call:
     // 
     // const HAPPYROBOT_WEBHOOK_URL = Deno.env.get("HAPPYROBOT_WEBHOOK_URL");
     // const HAPPYROBOT_API_KEY = Deno.env.get("HAPPYROBOT_API_KEY");
+    // 
+    // if (!HAPPYROBOT_WEBHOOK_URL || !HAPPYROBOT_API_KEY) {
+    //   throw new Error("Missing HappyRobot configuration. Set HAPPYROBOT_WEBHOOK_URL and HAPPYROBOT_API_KEY.");
+    // }
     // 
     // const externalResponse = await fetch(HAPPYROBOT_WEBHOOK_URL, {
     //   method: "POST",
@@ -82,13 +88,13 @@ serve(async (req) => {
     // });
     // 
     // if (!externalResponse.ok) {
-    //   throw new Error(`External API error: ${externalResponse.statusText}`);
+    //   throw new Error(`HappyRobot API error: ${externalResponse.statusText}`);
     // }
     // 
     // const externalData = await externalResponse.json();
     // const runId = externalData.queued_run_ids?.[0];
 
-    // Mock response - simulates successful external call
+    // Mock response - simulates successful HappyRobot call
     const mockRunId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const runId = mockRunId;
 
