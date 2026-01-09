@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Phone, MapPin, Briefcase, Calendar, Clock, Hash } from "lucide-react";
+import { ArrowLeft, RefreshCw, Phone, MapPin, Briefcase, Calendar, Clock, Hash, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +132,12 @@ export default function OnboardingCallDetail() {
                   <Briefcase className="w-4 h-4" />
                   <span>{call.role}</span>
                 </div>
+                {call.team && (
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <span>{call.team}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <MapPin className="w-4 h-4" />
                   <span>{call.location}</span>
@@ -162,16 +168,21 @@ export default function OnboardingCallDetail() {
           )}
 
           {/* Call Summary Card */}
-          {call.summary && (
-            <Card className="glass-card animate-slide-up border-l-4 border-l-success">
-              <CardHeader>
-                <CardTitle className="text-lg">Call Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card className={`glass-card animate-slide-up ${call.summary ? "border-l-4 border-l-success" : ""}`}>
+            <CardHeader>
+              <CardTitle className="text-lg">Call Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {call.summary ? (
                 <p className="text-foreground whitespace-pre-wrap">{call.summary}</p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-muted-foreground">
+                  The call has not completed yet. Once HappyRobot finishes the onboarding call, 
+                  the summary will appear here.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Timestamps */}
           <Card className="glass-card">

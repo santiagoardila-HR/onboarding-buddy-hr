@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,15 +23,32 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const ROLE_OPTIONS = [
+  { value: "DS", label: "DS (Data Science)" },
+  { value: "FDE", label: "FDE (Full-Stack Development)" },
+  { value: "AES", label: "AES (Account Executive)" },
+  { value: "CS", label: "CS (Customer Success)" },
+  { value: "Ops", label: "Ops (Operations)" },
+  { value: "Other", label: "Other" },
+];
+
 const formSchema = z.object({
   employee_name: z.string().min(1, "Employee name is required"),
   employee_phone: z.string().min(1, "Phone number is required"),
   role: z.string().min(1, "Role is required"),
+  team: z.string().optional(),
   location: z.string().min(1, "Location is required"),
   start_date: z.date({ required_error: "Start date is required" }),
 });
@@ -48,6 +66,7 @@ export default function CreateOnboardingCall() {
       employee_name: "",
       employee_phone: "",
       role: "",
+      team: "",
       location: "",
     },
   });
@@ -63,6 +82,7 @@ export default function CreateOnboardingCall() {
           employee_name: values.employee_name,
           employee_phone: values.employee_phone,
           role: values.role,
+          team: values.team || null,
           location: values.location,
           start_date: format(values.start_date, "yyyy-MM-dd"),
           status: "PENDING",
@@ -120,9 +140,13 @@ export default function CreateOnboardingCall() {
         </Button>
 
         <div className="glass-card rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-foreground mb-6">
+          <h2 className="text-xl font-semibold text-foreground mb-2">
             Schedule Onboarding Call
           </h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            This will schedule an AI voice onboarding call that explains the HappyRobot culture, 
+            this role's responsibilities, and what their first week will look like.
+          </p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -133,7 +157,7 @@ export default function CreateOnboardingCall() {
                   <FormItem>
                     <FormLabel>Employee Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="Jane Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -160,9 +184,37 @@ export default function CreateOnboardingCall() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ROLE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="team"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Team (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Driver, Warehouse Staff, etc." {...field} />
+                      <Input placeholder="e.g. FDE – brokerage, Core infra" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Squad or team name within HappyRobot
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -175,7 +227,7 @@ export default function CreateOnboardingCall() {
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="Dallas Warehouse" {...field} />
+                      <Input placeholder="e.g. Colombia, US – EST, Remote EU" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -26,6 +26,7 @@ export type Database = {
           start_date: string
           status: string
           summary: string | null
+          team: string | null
           updated_at: string
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           start_date: string
           status?: string
           summary?: string | null
+          team?: string | null
           updated_at?: string
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           start_date?: string
           status?: string
           summary?: string | null
+          team?: string | null
           updated_at?: string
         }
         Relationships: []
