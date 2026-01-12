@@ -10,7 +10,7 @@ const corsHeaders = {
  * POST /onboarding-trigger
  * 
  * This function triggers the HappyRobot AI onboarding call system.
- * Currently mocked - replace the mock section with actual HappyRobot API calls.
+ * Sends a POST request to HappyRobot webhook when a new member is added.
  * 
  * Body: { id: string } - The onboarding_calls record ID
  * 
@@ -51,12 +51,12 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // MOCK EXTERNAL API CALL - HappyRobot Integration
-    // Replace this section with actual HappyRobot API integration
+    // HappyRobot Integration - Trigger onboarding call
     // =========================================================================
-    
+
+    const HAPPYROBOT_WEBHOOK_URL = "https://workflows.platform.happyrobot.ai/hooks/development/lgzwv7ykluoe";
+
     // Build the payload to send to HappyRobot
-    // TODO: Use APP_BASE_URL env var for the callback URL in production
     const externalPayload = {
       callback_url: `${supabaseUrl}/functions/v1/onboarding-webhook`,
       employee_name: call.employee_name,
@@ -69,37 +69,29 @@ serve(async (req) => {
 
     console.log("HappyRobot API payload:", JSON.stringify(externalPayload, null, 2));
 
-    // TODO: Replace this mock with actual HappyRobot API call:
-    // 
-    // const HAPPYROBOT_WEBHOOK_URL = Deno.env.get("HAPPYROBOT_WEBHOOK_URL");
-    // const HAPPYROBOT_API_KEY = Deno.env.get("HAPPYROBOT_API_KEY");
-    // 
-    // if (!HAPPYROBOT_WEBHOOK_URL || !HAPPYROBOT_API_KEY) {
-    //   throw new Error("Missing HappyRobot configuration. Set HAPPYROBOT_WEBHOOK_URL and HAPPYROBOT_API_KEY.");
-    // }
-    // 
-    // const externalResponse = await fetch(HAPPYROBOT_WEBHOOK_URL, {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     "X-API-KEY": HAPPYROBOT_API_KEY,
-    //   },
-    //   body: JSON.stringify(externalPayload),
-    // });
-    // 
-    // if (!externalResponse.ok) {
-    //   throw new Error(`HappyRobot API error: ${externalResponse.statusText}`);
-    // }
-    // 
-    // const externalData = await externalResponse.json();
-    // const runId = externalData.queued_run_ids?.[0];
+    // Send POST request to HappyRobot workflow
+    const externalResponse = await fetch(HAPPYROBOT_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(externalPayload),
+    });
 
-    // Mock response - simulates successful HappyRobot call
-    const mockRunId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const runId = mockRunId;
+    if (!externalResponse.ok) {
+      const errorText = await externalResponse.text();
+      console.error("HappyRobot API error:", externalResponse.status, errorText);
+      throw new Error(`HappyRobot API error: ${externalResponse.status} - ${errorText}`);
+    }
+
+    const externalData = await externalResponse.json();
+    console.log("HappyRobot API response:", JSON.stringify(externalData, null, 2));
+
+    // Extract run_id from response (handles various response formats)
+    const runId = externalData.queued_run_ids?.[0] || externalData.run_id || `run_${Date.now()}`;
 
     // =========================================================================
-    // END MOCK SECTION
+    // END HappyRobot Integration
     // =========================================================================
 
     // Update the database with run_id and set status to RUNNING
