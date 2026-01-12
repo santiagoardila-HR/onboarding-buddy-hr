@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      faq_pending_questions: {
+        Row: {
+          created_at: string
+          id: string
+          proposed_answer: string | null
+          question: string
+          role: string | null
+          run_id: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposed_answer?: string | null
+          question: string
+          role?: string | null
+          run_id?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposed_answer?: string | null
+          question?: string
+          role?: string | null
+          run_id?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      faqs: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       onboarding_calls: {
         Row: {
           created_at: string

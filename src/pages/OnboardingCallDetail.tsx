@@ -1,20 +1,57 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Phone, MapPin, Briefcase, Calendar, Clock, Hash, Users } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, RefreshCw, Phone, MapPin, Briefcase, Calendar, Clock, Hash, Users, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingCallDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-onboarding?id=${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deleted", description: "Onboarding call has been deleted." });
+      navigate("/");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete onboarding call",
+        variant: "destructive",
+      });
+      setShowDeleteDialog(false);
+    },
+  });
 
   const { data: call, isLoading, error } = useQuery({
     queryKey: ["onboarding-call", id],
@@ -112,15 +149,26 @@ export default function OnboardingCallDetail() {
                   <StatusBadge status={call.status as any} />
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshStatus}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh Status
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshStatus}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+                  Refresh Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,6 +252,15 @@ export default function OnboardingCallDetail() {
             </CardContent>
           </Card>
         </div>
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={() => deleteMutation.mutate()}
+          title="Delete onboarding call?"
+          description="This action cannot be undone. This will permanently delete this onboarding call record."
+          isPending={deleteMutation.isPending}
+        />
       </main>
     </div>
   );
