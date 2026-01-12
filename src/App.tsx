@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import CreateOnboardingCall from "./pages/CreateOnboardingCall";
 import OnboardingCallDetail from "./pages/OnboardingCallDetail";
+import FAQManager from "./pages/FAQManager";
+import UnansweredQuestions from "./pages/UnansweredQuestions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +22,8 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/create" element={<CreateOnboardingCall />} />
           <Route path="/call/:id" element={<OnboardingCallDetail />} />
+          <Route path="/faqs" element={<FAQManager />} />
+          <Route path="/unanswered" element={<UnansweredQuestions />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

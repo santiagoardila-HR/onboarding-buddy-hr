@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "./StatusBadge";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface OnboardingCall {
   id: string;
@@ -29,6 +34,52 @@ interface OnboardingCallsTableProps {
 }
 
 export function OnboardingCallsTable({ calls, isLoading }: OnboardingCallsTableProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("delete-onboarding", {
+        method: "DELETE",
+        body: {},
+        headers: {},
+      });
+
+      // Use query params for the ID
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-onboarding?id=${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deleted", description: "Onboarding call has been deleted." });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-calls"] });
+      setDeleteId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete onboarding call",
+        variant: "destructive",
+      });
+      setDeleteId(null);
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -78,17 +129,36 @@ export function OnboardingCallsTable({ calls, isLoading }: OnboardingCallsTableP
                 {format(new Date(call.created_at), "MMM d, yyyy h:mm a")}
               </TableCell>
               <TableCell className="text-right">
-                <Button asChild variant="ghost" size="sm">
-                  <Link to={`/call/${call.id}`}>
-                    <Eye className="w-4 h-4 mr-1" />
-                    View
-                  </Link>
-                </Button>
+                <div className="flex justify-end gap-1">
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to={`/call/${call.id}`}>
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteId(call.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      <DeleteConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+        title="Delete onboarding call?"
+        description="This action cannot be undone. This will permanently delete this onboarding call record."
+        isPending={deleteMutation.isPending}
+      />
     </div>
   );
 }
