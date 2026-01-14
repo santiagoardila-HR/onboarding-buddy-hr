@@ -92,22 +92,42 @@ export default function CreateOnboardingCall() {
 
       if (insertError) throw insertError;
 
-      // Step 2: Trigger the onboarding call via edge function
-      const { data: triggerData, error: triggerError } = await supabase.functions.invoke(
-        "onboarding-trigger",
-        {
-          body: { id: callData.id },
-        }
-      );
+      // Step 2: Trigger the onboarding call via HappyRobot webhook directly
+      const HAPPYROBOT_WEBHOOK_URL = "https://workflows.platform.happyrobot.ai/hooks/development/lgzwv7ykluoe";
 
-      if (triggerError) {
-        // Update status to FAILED if trigger fails
+      const webhookResponse = await fetch(HAPPYROBOT_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          record_id: callData.id,  // Database record ID for callback
+          employee_name: values.employee_name,
+          employee_phone: values.employee_phone,
+          role: values.role,
+          team: values.team || null,
+          location: values.location,
+          start_date: format(values.start_date, "yyyy-MM-dd"),
+        }),
+      });
+
+      if (!webhookResponse.ok) {
+        // Update status to FAILED if webhook fails
         await supabase
           .from("onboarding_calls")
           .update({ status: "FAILED" })
           .eq("id", callData.id);
-        throw triggerError;
+        throw new Error("Failed to trigger onboarding call");
       }
+
+      const webhookData = await webhookResponse.json();
+      const runId = webhookData.queued_run_ids?.[0] || webhookData.run_id || `run_${Date.now()}`;
+
+      // Update status to RUNNING with run_id
+      await supabase
+        .from("onboarding_calls")
+        .update({ status: "RUNNING", run_id: runId })
+        .eq("id", callData.id);
 
       toast({
         title: "Onboarding call scheduled",
@@ -144,7 +164,7 @@ export default function CreateOnboardingCall() {
             Schedule Onboarding Call
           </h2>
           <p className="text-muted-foreground text-sm mb-6">
-            This will schedule an AI voice onboarding call that explains the HappyRobot culture, 
+            This will schedule an AI voice onboarding call that explains the HappyRobot culture,
             this role's responsibilities, and what their first week will look like.
           </p>
 
@@ -203,22 +223,7 @@ export default function CreateOnboardingCall() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="team"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. FDE – brokerage, Core infra" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Squad or team name within HappyRobot
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
 
               <FormField
                 control={form.control}

@@ -21,23 +21,14 @@ export default function OnboardingCallDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-onboarding?id=${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // Delete directly from database
+      const { error } = await supabase
+        .from("onboarding_calls")
+        .delete()
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete");
-      }
-
-      return response.json();
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       toast({ title: "Deleted", description: "Onboarding call has been deleted." });
@@ -70,21 +61,15 @@ export default function OnboardingCallDetail() {
 
   const handleRefreshStatus = async () => {
     if (!id) return;
-    
+
     setIsRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("onboarding-status", {
-        body: { id },
-      });
-
-      if (error) throw error;
-
-      // Refetch the call data
+      // Just refetch the data from database
       await queryClient.invalidateQueries({ queryKey: ["onboarding-call", id] });
 
       toast({
         title: "Status refreshed",
-        description: "The call status has been updated.",
+        description: "The call data has been updated.",
       });
     } catch (error: any) {
       console.error("Error refreshing status:", error);
@@ -225,7 +210,7 @@ export default function OnboardingCallDetail() {
                 <p className="text-foreground whitespace-pre-wrap">{call.summary}</p>
               ) : (
                 <p className="text-muted-foreground">
-                  The call has not completed yet. Once HappyRobot finishes the onboarding call, 
+                  The call has not completed yet. Once HappyRobot finishes the onboarding call,
                   the summary will appear here.
                 </p>
               )}

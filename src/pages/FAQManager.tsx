@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, RefreshCw, Filter } from "lucide-react";
+import { Plus, RefreshCw, Filter, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,17 +51,17 @@ export default function FAQManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("");
-  const [categoryFilter, setCategoryFilter] = useState("");
 
   // Form state
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
   const [newRole, setNewRole] = useState("");
-  const [newCategory, setNewCategory] = useState("");
 
   const { data: faqs = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["faqs", roleFilter, categoryFilter],
+    queryKey: ["faqs", roleFilter],
     queryFn: async () => {
       let query = supabase
         .from("faqs")
@@ -71,9 +71,6 @@ export default function FAQManager() {
 
       if (roleFilter && roleFilter !== "all") {
         query = query.eq("role", roleFilter);
-      }
-      if (categoryFilter) {
-        query = query.ilike("category", `%${categoryFilter}%`);
       }
 
       const { data, error } = await query;
@@ -90,7 +87,7 @@ export default function FAQManager() {
           question: newQuestion,
           answer: newAnswer,
           role: newRole || null,
-          category: newCategory || null,
+          category: null,
         },
       });
 
@@ -104,7 +101,6 @@ export default function FAQManager() {
       setNewQuestion("");
       setNewAnswer("");
       setNewRole("");
-      setNewCategory("");
     },
     onError: (error: any) => {
       toast({
@@ -126,6 +122,40 @@ export default function FAQManager() {
       return;
     }
     createFaqMutation.mutate();
+  };
+
+  const updateFaqMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingFaq) return;
+      const { error } = await supabase
+        .from("faqs")
+        .update({
+          question: editingFaq.question,
+          answer: editingFaq.answer,
+          role: editingFaq.role,
+        })
+        .eq("id", editingFaq.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "FAQ updated", description: "The FAQ has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["faqs"] });
+      setIsEditOpen(false);
+      setEditingFaq(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update FAQ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (faq: FAQ) => {
+    setEditingFaq({ ...faq });
+    setIsEditOpen(true);
   };
 
   return (
@@ -203,15 +233,6 @@ export default function FAQManager() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category (optional)</Label>
-                      <Input
-                        id="category"
-                        placeholder="e.g. Benefits, Culture"
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
-                      />
-                    </div>
                   </div>
                   <DialogFooter>
                     <Button
@@ -249,13 +270,59 @@ export default function FAQManager() {
               </SelectContent>
             </Select>
           </div>
-          <Input
-            placeholder="Filter by category..."
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-[200px]"
-          />
         </div>
+
+        {/* Edit FAQ Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit FAQ</DialogTitle>
+              <DialogDescription>
+                Update this frequently asked question.
+              </DialogDescription>
+            </DialogHeader>
+            {editingFaq && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Question</Label>
+                  <Textarea
+                    value={editingFaq.question}
+                    onChange={(e) => setEditingFaq({ ...editingFaq, question: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Answer</Label>
+                  <Textarea
+                    value={editingFaq.answer}
+                    onChange={(e) => setEditingFaq({ ...editingFaq, answer: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={editingFaq.role || ""} onValueChange={(v) => setEditingFaq({ ...editingFaq, role: v || null })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+                  <Button onClick={() => updateFaqMutation.mutate()} disabled={updateFaqMutation.isPending}>
+                    {updateFaqMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* FAQs Table */}
         <div className="glass-card rounded-lg">
@@ -275,11 +342,10 @@ export default function FAQManager() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[35%]">Question</TableHead>
-                    <TableHead className="w-[35%]">Answer</TableHead>
+                    <TableHead className="w-[40%]">Question</TableHead>
+                    <TableHead className="w-[40%]">Answer</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -296,11 +362,10 @@ export default function FAQManager() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {faq.category || "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(faq.created_at), "MMM d, yyyy")}
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(faq)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

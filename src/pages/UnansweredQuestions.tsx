@@ -62,12 +62,49 @@ export default function UnansweredQuestions() {
 
   const answerMutation = useMutation({
     mutationFn: async ({ id, answer, createFaq }: { id: string; answer: string; createFaq: boolean }) => {
-      const { data, error } = await supabase.functions.invoke("faqs-pending-answer", {
-        body: { id, answer, createFaq },
-      });
+      // Get the pending question first to get the question text
+      const { data: questionData, error: fetchError } = await supabase
+        .from("faq_pending_questions")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-      if (error) throw error;
-      return data;
+      if (fetchError) throw fetchError;
+
+      // Determine new status based on whether answer is provided
+      const newStatus = answer.trim() ? "ANSWERED" : "DISMISSED";
+
+      // Update the pending question status
+      const { error: updateError } = await supabase
+        .from("faq_pending_questions")
+        .update({
+          status: newStatus,
+          proposed_answer: answer.trim() || null
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // If createFaq is true and we have an answer, create a new FAQ
+      let newFaq = null;
+      if (createFaq && answer.trim()) {
+        const { data: faqData, error: faqError } = await supabase
+          .from("faqs")
+          .insert({
+            question: questionData.question,
+            answer: answer.trim(),
+            role: questionData.role,
+            category: null,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (faqError) throw faqError;
+        newFaq = faqData;
+      }
+
+      return { status: newStatus, faq: newFaq };
     },
     onSuccess: (data) => {
       const action = data.status === "ANSWERED" ? "answered" : "dismissed";

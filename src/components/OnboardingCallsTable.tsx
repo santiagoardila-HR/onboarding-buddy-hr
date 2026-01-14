@@ -40,25 +40,14 @@ export function OnboardingCallsTable({ calls, isLoading }: OnboardingCallsTableP
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Call the delete-onboarding edge function with the ID as query param
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-onboarding?id=${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // Delete directly from database
+      const { error } = await supabase
+        .from("onboarding_calls")
+        .delete()
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete");
-      }
-
-      return response.json();
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       toast({ title: "Deleted", description: "Onboarding call has been deleted." });
